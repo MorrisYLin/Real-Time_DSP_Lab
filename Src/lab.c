@@ -22,23 +22,31 @@ extern float32_t fft_mag[FRAME_SIZE/8];
 
 //declare variables local to this file
 uint32_t elapsed_cycles;
-float32_t phase;
-float32_t x[3] = {1,0,0};
-float32_t y[3] = {0,0,0};
-
+float32_t current_phase = 0;
 float32_t w0;
-float32_t coeff1;
-float32_t coeff2;
+float32_t sin_w0;
+float32_t cos_w0;
+float32_t x[3] = {1,0,0}; // x[0] is the signal x[n], x[1] is the signal x[n-1], etc
+float32_t y[3] = {0,0,0}; // Same for y^
+int16_t table[16];
+uint32_t tableIndex = 0;
+
+
+
 /*
 This function will be called once before beginning the main program loop.
 This is the best place to build a lookup table.
 */
 void lab_init(int16_t* output_buffer)
 {
-	w0 = M_PI / 8.0;
-	coeff1 = 2.0 * arm_cos_f32(w0);
-	coeff2 = arm_sin_f32(w0);
-//	coeff2 = (arm_cos_f32(w0));
+	//w0 = M_PI / 8; // for f0 = 1kHz, fs = 16kHz
+	w0 = 15 * M_PI / 8; // for f0 = 15kHz, fs = 16kHz
+	float32_t amplitude;
+	for (uint32_t n = 0; n < 16; n+=1)
+	{
+	    amplitude = arm_sin_f32(n * w0); // sin amplitude as a float within [-1, 1]
+	    table[n] = (int16_t) (OUTPUT_SCALE_FACTOR * amplitude);
+	}
 	return;
 }
 
@@ -74,43 +82,46 @@ Default behavior:
 	1. Copy input to output without modification (passthrough)
 	2. Estimate the number of cycles that have elapsed during the function call
 */
-// Lab 2 Week 1: Math libarary & phase accumulation
-//int16_t process_left_sample(int16_t input_sample)
-//{
-//	tic();
-//	int16_t output_sample;
-//	if (phase > 2 * M_PI)
-//		phase -= 2 * M_PI;
-//	output_sample = (int16_t) (OUTPUT_SCALE_FACTOR * arm_sin_f32(phase));
-//	phase += M_PI / 8.0;
-//	elapsed_cycles = toc();
-//	return output_sample;
-//}
-
-// Lab 2 Week 1: Difference equation
 int16_t process_left_sample(int16_t input_sample)
 {
 	tic();
-	int16_t output_sample;
-
-	output_sample = y[0] * OUTPUT_SCALE_FACTOR;
-
-	float32_t y_new = coeff1 * y[1] - y[2] + coeff2 * x[1];
-//	float32_t y_new = coeff1 * y[1] - y[2] + x[0] - coeff2 * x[1];
-	float32_t x_new = 0.0;
-
-	//y = {y_new, y[0], y[1]};
-	y[2] = y[1];
-	y[1] = y_new;
-	y[0] = y_new;
-	//x = {x_new, x[0], x[1]};
-	x[2] = x[1];
-	x[1] = x_new;
-	x[0] = x_new;
-
+    int16_t output_sample;
+    output_sample = table[tableIndex];
+    tableIndex += 1;
+    if (tableIndex == 16) tableIndex = 0;
 	elapsed_cycles = toc();
+	printf("Elapsed Cycles: %d\n", elapsed_cycles);
 	return output_sample;
 }
+
+// Lab 1
+//	float scaled_input = input_sample * INPUT_SCALE_FACTOR;
+//	scaled_input *= scaled_input;
+//  output_sample = (int16_t)(scaled_input * OUTPUT_SCALE_FACTOR);
+//  output_sample = input_sample;
+
+// Lab 2 - phase accumulation
+//  output_sample = OUTPUT_SCALE_FACTOR * arm_sin_f32(current_phase);
+//	current_phase += w0;
+//	if (current_phase > 2 * M_PI) current_phase -= 2 * M_PI;
+
+// Lab 2 - Difference equation / Impulse Response
+//tic();
+//float32_t output_sample;
+//
+//y[0] = 2 * cos_w0 * y[1] - y[2] + sin_w0 * x[1]; // Calculate y[n]
+//
+//// Update y[n-2, n-1, n] and x[n-2. n-1, n]
+//y[2] = y[1]; y[1] = y[0];
+//x[2] = x[1]; x[1] = x[0]; x[0] = 0;
+//
+//output_sample = y[0] * OUTPUT_SCALE_FACTOR;
+//
+//elapsed_cycles = toc();
+//printf("Elapsed Cycles: %d\n", elapsed_cycles);
+//return (int16_t) output_sample;
+
+
 
 /*
 This function provides access to each individual sample that is incoming on the left channel.
