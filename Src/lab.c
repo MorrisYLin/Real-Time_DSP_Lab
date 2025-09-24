@@ -43,30 +43,30 @@ This is the best place to build a lookup table.
 */
 void lab_init(int16_t* output_buffer)
 {
-//	w0 = M_PI / 8; // for f0 = 1kHz, fs = 16kHz
-//	w0 = 15 * M_PI / 8; // for f0 = 15kHz, fs = 16kHz
-	w0 = (2.0 * M_PI) * (440.0 / 16000.0); // for f0 = 440Hz, fs = 16kHz
-	float32_t amplitude;
-	for (uint32_t n = 0; n < table_len; n+=1)
-	{
-	    amplitude = arm_sin_f32(n * w0); // sin amplitude as a float within [-1, 1]
-	    table[n] = (int16_t) (OUTPUT_SCALE_FACTOR * amplitude);
-	}
-
-	for (uint32_t i_sample = 0; i_sample < FRAME_SIZE; i_sample+=1)
-	{
-	    i_table = (i_sample/2) % table_len;
-	    output_buffer[i_sample] = table[i_table]; //left
-	    i_sample += 1;
-	    output_buffer[i_sample] = 0; //right
-	}
 	return;
 }
-// Lab 2 - Lookup table: sample-by-sample
+
+// Lab 2 - phase accumulation
 //void lab_init(int16_t* output_buffer)
 //{
 //	w0 = M_PI / 8; // for f0 = 1kHz, fs = 16kHz
-////w0 = 15 * M_PI / 8; // for f0 = 15kHz, fs = 16kHz
+//	return;
+//}
+
+// Lab 2 - Difference equation / Impulse Response
+//void lab_init(int16_t* output_buffer)
+//{
+//	w0 = M_PI / 8; // for f0 = 1kHz, fs = 16kHz
+//	sin_w0 = arm_sin_f32(w0);
+//	cos_w0 = arm_cos_f32(w0);
+//	return;
+//}
+
+// Lab 2 - Lookup table: sample-by-sample
+//void lab_init(int16_t* output_buffer)
+//{
+////	w0 = M_PI / 8; // for f0 = 1kHz, fs = 16kHz
+//	w0 = 15 * M_PI / 8; // for f0 = 15kHz, fs = 16kHz
 //	float32_t amplitude;
 //	for (uint32_t n = 0; n < 16; n+=1)
 //	{
@@ -135,16 +135,9 @@ Default behavior:
 int16_t process_left_sample(int16_t input_sample)
 {
 	tic();
-    int16_t output_sample;
 
-    output_sample = table[i_table];
-    i_table += 1;
-    if (i_table == 16)
-    {
-    	i_table = 0;
-    }
+	output_sample = input_sample;
 
-	elapsed_cycles = toc();
 	printf("Elapsed Cycles: %d\n", elapsed_cycles);
 	return output_sample;
 }
@@ -169,7 +162,8 @@ int16_t process_left_sample(int16_t input_sample)
 //{
 //	tic();
 //
-//  output_sample = OUTPUT_SCALE_FACTOR * arm_sin_f32(current_phase);
+//	float32_t output_sample;
+//	output_sample = OUTPUT_SCALE_FACTOR * arm_sin_f32(current_phase);
 //	current_phase += w0;
 //	if (current_phase > 2 * M_PI) current_phase -= 2 * M_PI;
 //
@@ -201,9 +195,9 @@ int16_t process_left_sample(int16_t input_sample)
 //int16_t process_left_sample(int16_t input_sample)
 //{
 //	tic();
-//  int16_t output_sample;
+//	int16_t output_sample;
 //
-//  output_sample = table[i_table];
+//	output_sample = table[i_table];
 //	i_table += 1;
 //	if (i_table == 16)
 //	{
