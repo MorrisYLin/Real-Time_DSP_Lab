@@ -28,14 +28,18 @@ float32_t current_phase = 0;
 float32_t w0;
 float32_t sin_w0;
 float32_t cos_w0;
-float32_t x[3] = {1,0,0}; // x[0] is the signal x[n], x[1] is the signal x[n-1], etc
-float32_t y[3] = {0,0,0}; // Same for y ^
-// Lab 2 - Lookup table: sample-by-sample
+//float32_t x[3] = {1,0,0}; // x[0] is the signal x[n], x[1] is the signal x[n-1], etc
+//float32_t y[3] = {0,0,0}; // Same for y ^
+// Lab 2 - Lookup table: sample-by-sample AND DMA
 //uint32_t table_len = 16;	// For 1kHz
 uint32_t table_len = 400;	// For 440Hz
 //int16_t table[16];	// For 1kHz
 int16_t table[400];		// For 440Hz
 uint32_t i_table = 0;
+// Lab 3 - FIR Implementation
+float32_t b[31] = {-0.003293,-0.003366,-0.007240,0.034579,-0.035257,0.092748,0.011682,0.034960,0.097772,0.002398,-0.042039,0.027209,-0.128078,-0.271240,0.106452,0.447593,0.106452,-0.271240,-0.128078,0.027209,-0.042039,0.002398,0.097772,0.034960,0.011682,0.092748,-0.035257,0.034579,-0.007240,-0.003366,-0.003293};
+float32_t x[31] = {0.0};
+float32_t y = 0.0;
 
 /*
 This function will be called once before beginning the main program loop.
@@ -136,8 +140,19 @@ int16_t process_left_sample(int16_t input_sample)
 {
 	tic();
 
-	output_sample = input_sample;
+	for (int i = 30; i > 0; i--) {
+		x[i] = x[i - 1];
+	}
+	x[0] = ((float32_t) input_sample) * INPUT_SCALE_FACTOR;
 
+	y = 0.0;
+	for (int i = 0; i < 31; i++) {
+		y += x[i] * b[i];
+	}
+
+	int16_t output_sample = (int16_t) (y * OUTPUT_SCALE_FACTOR);
+
+	elapsed_cycles = toc();
 	printf("Elapsed Cycles: %d\n", elapsed_cycles);
 	return output_sample;
 }
@@ -149,6 +164,7 @@ int16_t process_left_sample(int16_t input_sample)
 //
 //	float scaled_input = input_sample * INPUT_SCALE_FACTOR;
 //	scaled_input *= scaled_input;
+//	int16_t output_sample;
 //  output_sample = (int16_t)(scaled_input * OUTPUT_SCALE_FACTOR);
 //  output_sample = input_sample;
 //
