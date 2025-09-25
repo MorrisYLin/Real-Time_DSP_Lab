@@ -113,6 +113,29 @@ Default behavior:
 	3. Save the result to the fft_in buffer which will be used for the display
 	4. The original audio buffer is left unchanged (passthrough)
 */
+
+int32_t pos = 31; 	// Used with circular buffer
+void append_circular(float32_t new_val) {
+	pos -= 1;
+	if (pos == -1) {
+		pos = 30;
+	}
+	x[pos] = new_val;
+}
+float32_t read_circular(int32_t i) {
+	if ((pos < 0) || (pos > 30)) {
+		while (1) {
+			;
+		}
+	}
+
+	int32_t pos_r = pos + i;
+	if (pos_r >= 31) {
+		pos_r -= 31;
+	}
+	return x[pos_r];
+}
+
 void process_input_buffer(int16_t* input_buffer)
 {
 	int16_t left_sample;
@@ -140,14 +163,23 @@ int16_t process_left_sample(int16_t input_sample)
 {
 	tic();
 
-	for (int i = 30; i > 0; i--) {
-		x[i] = x[i - 1];
-	}
-	x[0] = ((float32_t) input_sample) * INPUT_SCALE_FACTOR;
+	// Linear buffer
+//	for (int i = 30; i > 0; i--) {
+//		x[i] = x[i - 1];
+//	}
+//	x[0] = ((float32_t) input_sample) * INPUT_SCALE_FACTOR;
+//
+//	y = 0.0;
+//	for (int i = 0; i < 31; i++) {
+//		y += x[i] * b[i];
+//	}
+
+	// Circular buffer
+	append_circular( ((float32_t) input_sample) * INPUT_SCALE_FACTOR );
 
 	y = 0.0;
 	for (int i = 0; i < 31; i++) {
-		y += x[i] * b[i];
+		y += read_circular(i) * b[i];
 	}
 
 	int16_t output_sample = (int16_t) (y * OUTPUT_SCALE_FACTOR);
