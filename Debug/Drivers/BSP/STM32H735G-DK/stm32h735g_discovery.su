@@ -1,0 +1,13 @@
+../Drivers/BSP/STM32H735G-DK/stm32h735g_discovery.c:106:9:BSP_GetVersion	4	static
+../Drivers/BSP/STM32H735G-DK/stm32h735g_discovery.c:119:9:BSP_LED_Init	48	static
+../Drivers/BSP/STM32H735G-DK/stm32h735g_discovery.c:159:9:BSP_LED_DeInit	40	static
+../Drivers/BSP/STM32H735G-DK/stm32h735g_discovery.c:180:9:BSP_LED_On	24	static
+../Drivers/BSP/STM32H735G-DK/stm32h735g_discovery.c:196:9:BSP_LED_Off	24	static
+../Drivers/BSP/STM32H735G-DK/stm32h735g_discovery.c:211:9:BSP_LED_Toggle	24	static
+../Drivers/BSP/STM32H735G-DK/stm32h735g_discovery.c:226:9:BSP_LED_GetState	24	static
+../Drivers/BSP/STM32H735G-DK/stm32h735g_discovery.c:245:9:BSP_PB_Init	40	static
+../Drivers/BSP/STM32H735G-DK/stm32h735g_discovery.c:288:9:BSP_PB_DeInit	40	static
+../Drivers/BSP/STM32H735G-DK/stm32h735g_discovery.c:306:9:BSP_PB_GetState	16	static
+../Drivers/BSP/STM32H735G-DK/stm32h735g_discovery.c:316:6:BSP_PB_IRQHandler	16	static
+../Drivers/BSP/STM32H735G-DK/stm32h735g_discovery.c:325:13:BUTTON_USER_EXTI_Callback	8	static
+../Drivers/BSP/STM32H735G-DK/stm32h735g_discovery.c:335:13:BSP_PB_Callback	16	static

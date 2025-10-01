@@ -1,0 +1,15 @@
+../Src/main.c:71:5:main	8	static
+../Src/main.c:101:6:audio_init	8	static
+../Src/main.c:119:6:tic	4	static
+../Src/main.c:124:10:toc	4	static
+../Src/main.c:129:6:display_spectrum	40	static
+../Src/main.c:156:6:display_image	56	static
+../Src/main.c:181:6:BSP_AUDIO_IN_HalfTransfer_CallBack	56	static,ignoring_inline_asm
+../Src/main.c:209:6:BSP_AUDIO_IN_TransferComplete_CallBack	56	static,ignoring_inline_asm
+../Src/main.c:260:13:SystemClock_Config	128	static
+../Src/main.c:338:13:Display_DemoDescription	24	static
+../Src/main.c:375:9:CheckForUserInput	4	static
+../Src/main.c:385:6:BSP_PB_Callback	16	static
+../Src/main.c:398:13:MPU_Config	24	static
+../Src/main.c:428:13:CPU_CACHE_Enable	24	static,ignoring_inline_asm
+../Src/main.c:442:13:Error_Handler	4	static
