@@ -22,7 +22,7 @@ extern float32_t fft_mag[FRAME_SIZE/8];
 
 //declare variables local to this file
 #define filterOrder 6 // filter order N
-#define numCoefficients filterOrder + 1 // N + 1 coefficients
+#define numCoefficients 7 // N + 1 coefficients
 uint32_t elapsed_cycles;
 float32_t current_phase = 0;
 float32_t w0;
@@ -57,6 +57,7 @@ void lab_init(int16_t* output_buffer)
 	//arm_fir_init_f32(&filter_instance, 31, b, state, FRAME_SIZE/4); // LAB 3 week 1, frame based
 	//w0 = M_PI / 8; // for f0 = 1kHz, fs = 16kHz
 	//w0 = 15 * M_PI / 8; // for f0 = 15kHz, fs = 16kHz
+	return;
 }
 
 // Lab 2: DMA
@@ -137,7 +138,7 @@ int16_t process_left_sample(int16_t input_sample)
 	}
 
 	for (uint8_t i = 1; i < numCoefficients; i++) { // Calculate y[n]
-			yN += feedBack[i] * y[i];
+			yN -= feedBack[i] * y[i];
 	}
 
 	y[0] = yN;

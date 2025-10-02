@@ -4,10 +4,10 @@
 // These statements enable the corresponding functions in lab.c.
 // If one or more of the statements are commented out, the function will no longer be called.
 // Use this to disable any functions you are not using to reduce overhead.
-//   #define PROCESS_LEFT_CHANNEL
-//   #define PROCESS_RIGHT_CHANNEL
+   #define PROCESS_LEFT_CHANNEL
+   #define PROCESS_RIGHT_CHANNEL
    #define PROCESS_INPUT_BUFFER
-//   #define PROCESS_OUTPUT_BUFFER
+   #define PROCESS_OUTPUT_BUFFER
 
 // When PERIODIC_LOOKUP_TABLE is defined, the output signal will not be derived from the input.
 // The process_left_channel, process_right_channel, and process_input_buffer functions are unused.
