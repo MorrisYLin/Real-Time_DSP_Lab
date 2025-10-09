@@ -85,6 +85,76 @@ Default behavior:
 	1. Copy input to output without modification (passthrough)
 	2. Estimate the number of cycles that have elapsed during the function call
 */
+// Circular buffer code
+typedef struct {
+    float32_t *buffer;   // pointer to array
+    int32_t length;      // number of valid elements currently stored
+    int32_t size;        // total capacity of the buffer
+    int32_t pos;         // current position index
+} CircularBuffer;
+
+int32_t append(CircularBuffer *cb, float32_t new_val) {
+    cb->pos -= 1;
+    if (cb->pos < 0) {
+        cb->pos = cb->size - 1;
+    }
+    cb->buffer[cb->pos] = new_val;
+
+    // update length (cannot exceed size)
+    if (cb->length < cb->size) {
+        cb->length++;
+    }
+    return cb->pos;  // return updated position
+}
+
+void pop(CircularBuffer *cb) {
+    if (cb->length <= 0) return;  // nothing to delete
+
+    cb->pos += 1;
+    if (cb->pos >= cb->size) {
+        cb->pos = 0;
+    }
+    cb->length -= 1;
+}
+
+float32_t read(CircularBuffer *cb, int32_t i) {
+    if ((cb->pos < 0) || (cb->pos >= cb->size)) {
+        while (1) { ; } // safety trap
+    }
+
+    int32_t pos_r = cb->pos + i;
+    if (pos_r >= cb->size) {
+        pos_r -= cb->size;
+    }
+    return cb->buffer[pos_r];
+}
+
+CircularBuffer circX = {x, 0, FilterLen, FilterLen - 1};
+CircularBuffer circY = {y, 0, FilterLen, FilterLen - 1};
+
+// Lab 3 week 3: Circular buffer of literal IIR implementations
+int16_t process_left_sample(int16_t input_sample)
+{
+	tic();
+	int16_t output_sample;
+
+	// Get new input
+	append(&circX, input_sample * INPUT_SCALE_FACTOR);
+	append(&circY, 0.0);
+	// Calculate new output
+	float32_t temp = 0.0f;
+	for (int i = 0; i < FilterLen; i++)
+		temp += read(&circX, i) * fore[i] - read(&circY, i) * back[i];
+
+	pop(&circY);
+	append(&circY, temp);
+
+	output_sample = temp * OUTPUT_SCALE_FACTOR;
+
+	elapsed_cycles = toc();
+	return output_sample;
+}
+// Lab 3 week 2
 //int16_t process_left_sample(int16_t input_sample)
 //{
 //	tic();
@@ -112,34 +182,6 @@ Default behavior:
 //	elapsed_cycles = toc();
 //	return output_sample;
 //}
-// Lab 3 week 2
-int16_t process_left_sample(int16_t input_sample)
-{
-	tic();
-	int16_t output_sample;
-
-	// Shift y and x
-	for (int i = FilterLen - 1; i >= 1; i--)
-		y[i] = y[i - 1];
-	for (int i = FilterLen - 1; i >= 1; i--)
-		x[i] = x[i - 1];
-
-	// Put in new input, zero init output
-	x[0] = input_sample * INPUT_SCALE_FACTOR;
-	y[0] = 0.0;
-
-	// Calculate new output
-	float32_t temp = 0.0f;
-	for (int i = 0; i < FilterLen; i++)
-		temp += x[i] * fore[i] - y[i] * back[i];
-
-	y[0] = temp;
-
-	output_sample = temp * OUTPUT_SCALE_FACTOR;
-
-	elapsed_cycles = toc();
-	return output_sample;
-}
 
 /*
 This function provides access to each individual sample that is incoming on the left channel.
