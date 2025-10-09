@@ -21,29 +21,28 @@ extern float32_t fft_out[FRAME_SIZE/4];
 extern float32_t fft_mag[FRAME_SIZE/8];
 
 //declare variables local to this file
-#define FilterLen 7
+#define FilterLen 2
 
 uint32_t elapsed_cycles;
 // Lab 3 week 2
-const float32_t fore[FilterLen] = {0.0692585012840081, -0.00562043209908955, -0.188713717395346, 0.0, 0.188713717395346, 0.00562043209908955, -0.0692585012840081};
-const float32_t back[FilterLen] = {0.0, -1.33160257778053, 1.73605396252057, -1.46788691694819, 1.43145085327469, -0.696108745296826, 0.383105162659562};
-float32_t x[FilterLen] = {0.0};
-float32_t y[FilterLen] = {0.0};
+//const float32_t fore[FilterLen] = {0.0692585012840081, -0.00562043209908955, -0.188713717395346, 0.0, 0.188713717395346, 0.00562043209908955, -0.0692585012840081};
+//const float32_t back[FilterLen] = {0.0, -1.33160257778053, 1.73605396252057, -1.46788691694819, 1.43145085327469, -0.696108745296826, 0.383105162659562};
+//float32_t x[FilterLen] = {0.0};
+//float32_t y[FilterLen] = {0.0};
 // Lab 3 week 3
-//float32_t B[3][3] = {
-//		{1.000000,1.889818,1.000000},
-//		{1.000000,-1.970969,1.000000},
-//		{1.000000,0.000000,-1.000000}
-//};
-//float32_t A[3][3] = {
-//		{1.000000,-1.447046,0.862778},
-//		{1.000000,0.622267,0.802149},
-//		{1.000000,-0.506824,0.553559}
-//};
-//float32_t G[4] = {0.340877,0.340877,0.596044,1.000000};
-//float32_t Y[3][3] = {0};
-//float32_t X[3][3] = {0};
-
+float32_t B[3][3] = {
+		{1.000000,1.889818,1.000000},
+		{1.000000,-1.970969,1.000000},
+		{1.000000,0.000000,-1.000000}
+};
+float32_t A[3][3] = {
+		{0.000000,-1.447046,0.862778},
+		{0.000000,0.622267,0.802149},
+		{0.000000,-0.506824,0.553559}
+};
+float32_t G[3] = {0.340877,0.340877,0.596044};
+float32_t Y[3][3] = {{0.0}};
+float32_t X[3][3] = {{0.0}};
 /*
 This function will be called once before beginning the main program loop.
 This is the best place to build a lookup table.
@@ -85,75 +84,116 @@ Default behavior:
 	1. Copy input to output without modification (passthrough)
 	2. Estimate the number of cycles that have elapsed during the function call
 */
-// Circular buffer code
-typedef struct {
-    float32_t *buffer;   // pointer to array
-    int32_t length;      // number of valid elements currently stored
-    int32_t size;        // total capacity of the buffer
-    int32_t pos;         // current position index
-} CircularBuffer;
 
-int32_t append(CircularBuffer *cb, float32_t new_val) {
-    cb->pos -= 1;
-    if (cb->pos < 0) {
-        cb->pos = cb->size - 1;
-    }
-    cb->buffer[cb->pos] = new_val;
-
-    // update length (cannot exceed size)
-    if (cb->length < cb->size) {
-        cb->length++;
-    }
-    return cb->pos;  // return updated position
-}
-
-void pop(CircularBuffer *cb) {
-    if (cb->length <= 0) return;  // nothing to delete
-
-    cb->pos += 1;
-    if (cb->pos >= cb->size) {
-        cb->pos = 0;
-    }
-    cb->length -= 1;
-}
-
-float32_t read(CircularBuffer *cb, int32_t i) {
-    if ((cb->pos < 0) || (cb->pos >= cb->size)) {
-        while (1) { ; } // safety trap
-    }
-
-    int32_t pos_r = cb->pos + i;
-    if (pos_r >= cb->size) {
-        pos_r -= cb->size;
-    }
-    return cb->buffer[pos_r];
-}
-
-CircularBuffer circX = {x, 0, FilterLen, FilterLen - 1};
-CircularBuffer circY = {y, 0, FilterLen, FilterLen - 1};
-
-// Lab 3 week 3: Circular buffer of literal IIR implementations
+// Lab 3 week 3: second order sections
 int16_t process_left_sample(int16_t input_sample)
 {
 	tic();
 	int16_t output_sample;
 
-	// Get new input
-	append(&circX, input_sample * INPUT_SCALE_FACTOR);
-	append(&circY, 0.0);
-	// Calculate new output
-	float32_t temp = 0.0f;
-	for (int i = 0; i < FilterLen; i++)
-		temp += read(&circX, i) * fore[i] - read(&circY, i) * back[i];
+	// Shift y and x
+	for (int i = 0; i < 3; i++) {
+		X[i][2] = X[i][1];
+		X[i][1] = X[i][0];
+		Y[i][2] = Y[i][1];
+		Y[i][1] = Y[i][0];
+	}
 
-	pop(&circY);
-	append(&circY, temp);
+	// insert new inputs, zero init outputs
+	X[0][0] = G[0] * input_sample * INPUT_SCALE_FACTOR;
+	X[1][0] = G[1] * Y[0][0];
+	X[2][0] = G[2] * Y[1][0];
+	Y[0][0] = 0.0;
+	Y[1][0] = 0.0;
+	Y[2][0] = 0.0;
 
-	output_sample = temp * OUTPUT_SCALE_FACTOR;
+	// Calculate new outputs
+	float32_t temp[3] = {0.0};
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			temp[i] += X[i][j] * B[i][j] - Y[i][j] * A[i][j];
+		}
+	}
+
+	// Put new outputs in
+	Y[0][0] = temp[0];
+	Y[1][0] = temp[1];
+	Y[2][0] = temp[2];
+
+	// Output
+	output_sample = temp[2] * OUTPUT_SCALE_FACTOR;
 
 	elapsed_cycles = toc();
 	return output_sample;
 }
+// Circular buffer code
+//typedef struct {
+//    float32_t *buffer;   // pointer to array
+//    int32_t length;      // number of valid elements currently stored
+//    int32_t size;        // total capacity of the buffer
+//    int32_t pos;         // current position index
+//} CircularBuffer;
+//
+//int32_t append(CircularBuffer *cb, float32_t new_val) {
+//    cb->pos -= 1;
+//    if (cb->pos < 0) {
+//        cb->pos = cb->size - 1;
+//    }
+//    cb->buffer[cb->pos] = new_val;
+//
+//    // update length (cannot exceed size)
+//    if (cb->length < cb->size) {
+//        cb->length++;
+//    }
+//    return cb->pos;  // return updated position
+//}
+//
+//void pop(CircularBuffer *cb) {
+//    if (cb->length <= 0) return;  // nothing to delete
+//
+//    cb->pos += 1;
+//    if (cb->pos >= cb->size) {
+//        cb->pos = 0;
+//    }
+//    cb->length -= 1;
+//}
+//
+//float32_t read(CircularBuffer *cb, int32_t i) {
+//    if ((cb->pos < 0) || (cb->pos >= cb->size)) {
+//        while (1) { ; } // safety trap
+//    }
+//
+//    int32_t pos_r = cb->pos + i;
+//    if (pos_r >= cb->size) {
+//        pos_r -= cb->size;
+//    }
+//    return cb->buffer[pos_r];
+//}
+//
+//CircularBuffer circX = {x, 0, FilterLen, FilterLen - 1};
+//CircularBuffer circY = {y, 0, FilterLen, FilterLen - 1};
+// Lab 3 week 3: Circular buffer of literal IIR implementations
+//int16_t process_left_sample(int16_t input_sample)
+//{
+//	tic();
+//	int16_t output_sample;
+//
+//	// Get new input
+//	append(&circX, input_sample * INPUT_SCALE_FACTOR);
+//	append(&circY, 0.0);
+//	// Calculate new output
+//	float32_t temp = 0.0f;
+//	for (int i = 0; i < FilterLen; i++)
+//		temp += read(&circX, i) * fore[i] - read(&circY, i) * back[i];
+//
+//	pop(&circY);
+//	append(&circY, temp);
+//
+//	output_sample = temp * OUTPUT_SCALE_FACTOR;
+//
+//	elapsed_cycles = toc();
+//	return output_sample;
+//}
 // Lab 3 week 2
 //int16_t process_left_sample(int16_t input_sample)
 //{
