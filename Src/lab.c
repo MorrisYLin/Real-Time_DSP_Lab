@@ -21,7 +21,28 @@ extern float32_t fft_out[FRAME_SIZE/4];
 extern float32_t fft_mag[FRAME_SIZE/8];
 
 //declare variables local to this file
+#define FilterLen 7
+
 uint32_t elapsed_cycles;
+// Lab 3 week 2
+const float32_t fore[FilterLen] = {0.0692585012840081, -0.00562043209908955, -0.188713717395346, 0.0, 0.188713717395346, 0.00562043209908955, -0.0692585012840081};
+const float32_t back[FilterLen] = {0.0, -1.33160257778053, 1.73605396252057, -1.46788691694819, 1.43145085327469, -0.696108745296826, 0.383105162659562};
+float32_t x[FilterLen] = {0.0};
+float32_t y[FilterLen] = {0.0};
+// Lab 3 week 3
+//float32_t B[3][3] = {
+//		{1.000000,1.889818,1.000000},
+//		{1.000000,-1.970969,1.000000},
+//		{1.000000,0.000000,-1.000000}
+//};
+//float32_t A[3][3] = {
+//		{1.000000,-1.447046,0.862778},
+//		{1.000000,0.622267,0.802149},
+//		{1.000000,-0.506824,0.553559}
+//};
+//float32_t G[4] = {0.340877,0.340877,0.596044,1.000000};
+//float32_t Y[3][3] = {0};
+//float32_t X[3][3] = {0};
 
 /*
 This function will be called once before beginning the main program loop.
@@ -64,11 +85,58 @@ Default behavior:
 	1. Copy input to output without modification (passthrough)
 	2. Estimate the number of cycles that have elapsed during the function call
 */
+//int16_t process_left_sample(int16_t input_sample)
+//{
+//	tic();
+//	int16_t output_sample;
+//
+//	// Shift y and x
+//	for (int i = FilterLen - 1; i >= 1; i--)
+//		y[i] = y[i - 1];
+//	for (int i = FilterLen - 1; i >= 1; i--)
+//		x[i] = x[i - 1];
+//
+//	// Put in new input, zero init output
+//	x[0] = input_sample * INPUT_SCALE_FACTOR;
+//	y[0] = 0.0;
+//
+//	// Calculate new output
+//	float32_t temp = 0.0f;
+//	for (int i = 0; i < FilterLen; i++)
+//		temp += x[i] * fore[i] - y[i] * back[i];
+//
+//	y[0] = temp;
+//
+//	output_sample = temp * OUTPUT_SCALE_FACTOR;
+//
+//	elapsed_cycles = toc();
+//	return output_sample;
+//}
+// Lab 3 week 2
 int16_t process_left_sample(int16_t input_sample)
 {
 	tic();
 	int16_t output_sample;
-	output_sample = input_sample;
+
+	// Shift y and x
+	for (int i = FilterLen - 1; i >= 1; i--)
+		y[i] = y[i - 1];
+	for (int i = FilterLen - 1; i >= 1; i--)
+		x[i] = x[i - 1];
+
+	// Put in new input, zero init output
+	x[0] = input_sample * INPUT_SCALE_FACTOR;
+	y[0] = 0.0;
+
+	// Calculate new output
+	float32_t temp = 0.0f;
+	for (int i = 0; i < FilterLen; i++)
+		temp += x[i] * fore[i] - y[i] * back[i];
+
+	y[0] = temp;
+
+	output_sample = temp * OUTPUT_SCALE_FACTOR;
+
 	elapsed_cycles = toc();
 	return output_sample;
 }
