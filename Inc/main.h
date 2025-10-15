@@ -45,6 +45,8 @@ extern uint32_t button_state;
 #define OSPI_RAM_WRITE_READ_ADDR             0x70400000
 #define OSPI_RAM_WRITE_READ_ADDR_OFFSET ((uint32_t)0x0800)
 
+void display_image(uint32_t* binary_image, uint32_t width, uint32_t height);
+
 #endif /* __MAIN_H */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
