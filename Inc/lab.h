@@ -17,7 +17,7 @@
 // When ENABLE_VISIALIZATION is defined, the LCD will show the spectrum of the input signal.
 // Disable this before modifying the process_input_buffer function in lab.c.
 // See the display_spectrum function in main.c.
-   #define ENABLE_VISUALIZATION
+//   #define ENABLE_VISUALIZATION
 
 // FRAME_SIZE specifies the length of the circular buffer that is used for audio I/O.
 // While data is collected on one half of the buffer, the user can process the other half.
