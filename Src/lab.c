@@ -122,6 +122,27 @@ uint32_t data[512] = { 0 };
 uint32_t i_word = 0;
 uint32_t i_bit = 0;
 int32_t k = 0;
+
+int8_t xcorr[32] = { 0 };
+int8_t header[32] = { 1, -1, -1, 1, -1, 1, 1, -1, -1, 1, 1, 1, 1, 1, -1, -1, -1,
+		1, 1, -1, 1, 1, 1, -1, 1, -1, 1, -1, -1, -1, -1, 1 };
+int8_t R = 0;
+int8_t header_matched = 0;
+
+float32_t B[2][3] = { { 1.0000f, 0.0000f, -1.0000f },   // BPF1
+		{ 1.0000f, 0.0000f, -1.0000f }    // BPF2
+};
+
+float32_t A[2][3] = { { 0.0000f, -1.9367f, 0.9746f },   // a0 is implicit 1.0
+		{ 0.0000f, -1.8016f, 0.94984f }   // a0 is implicit 1.0
+};
+
+// Per-section gains (using the first gain for each BPF)
+float32_t G[2] = { 0.012699f, 0.02508f };
+
+// State for the 2 biquads
+float32_t Y[2][3] = { { 0.0f } };
+float32_t X[2][3] = { { 0.0f } };
 /*
  This function will be called once before beginning the main program loop.
  This is the best place to build a lookup table.
@@ -228,6 +249,7 @@ int16_t process_left_sample(int16_t input_sample) {
  2. Estimate the number of cycles that have elapsed during the function call
  */
 int16_t process_right_sample(int16_t input_sample) {
+	// Costas Loop
 	float32_t r = input_sample * INPUT_SCALE_FACTOR;
 
 	Ux[0] = r * arm_cos_f32(theta);
@@ -256,35 +278,83 @@ int16_t process_right_sample(int16_t input_sample) {
 		theta -= 6.283185;
 	}
 
-	if (k == 15) {
-		k = 0;
-		if (Uy > 0) {
-			data[i_word] |= (1 << i_bit);
-		}
-
-		i_bit += 1;
-		if (i_bit == 32) {
-			i_word += 1;
-			i_bit = 0;
-		}
-	} else {
-		k++;
+	// BPFs
+	for (int i = 0; i < 2; i++) {	// Shift data
+		X[i][2] = X[i][1];
+		X[i][1] = X[i][0];
+		Y[i][2] = Y[i][1];
+		Y[i][1] = Y[i][0];
 	}
 
-	if (i_word > 511) {
-		display_image(data, 128, 128);
-		i_word = 0;
-		i_bit = 0;
-		for (size_t i = 0; i < 512; i++) {
-			data[i] = 0;
-		}
+	X[0][0] = G[0] * Uy;
+	Y[0][0] = 0.0f;
+
+	float32_t temp0 = 0.0f;   // Output of first BPF
+	for (int j = 0; j < 3; j++) {
+	    temp0 += X[0][j] * B[0][j] - Y[0][j] * A[0][j];
 	}
-	//display_image(data,128,128);
+	Y[0][0] = temp0;
 
-	return OUTPUT_SCALE_FACTOR * Uy * 0.3;
+	float32_t squared = temp0 * temp0;
 
-//	display_image(tree,128,128);
-//	return input_sample;
+	X[1][0] = G[1] * squared;
+	Y[1][0] = 0.0f;
+
+	float32_t temp1 = 0.0f;   // Output of second BPF
+	for (int j = 0; j < 3; j++) {
+	    temp1 += X[1][j] * B[1][j] - Y[1][j] * A[1][j];
+	}
+	Y[1][0] = temp1;
+
+	// Header & Image writing
+//	if (k == 15) {
+//
+//		k = 0;
+//
+//		if (header_matched) {
+//			if (Uy > 0) {
+//				data[i_word] |= (1 << i_bit);
+//			}
+//
+//			i_bit += 1;
+//			if (i_bit == 32) {
+//				i_word += 1;
+//				i_bit = 0;
+//			}
+//		} else {
+//			if (Uy > 0) {
+//				xcorr[0] = 1;
+//			} else {
+//				xcorr[0] = -1;
+//			}
+//
+//			R = 0;
+//			for (uint32_t i_hdr = 0; i_hdr < 32; i_hdr += 1) {
+//				R += xcorr[i_hdr] * header[i_hdr];
+//			}
+//			for (uint32_t i_hdr = 31; i_hdr > 0; i_hdr -= 1) {
+//				xcorr[i_hdr] = xcorr[i_hdr - 1];
+//			}
+//
+//			if (R > 30) {
+//				header_matched = 1;
+//			}
+//		}
+//	} else {
+//		k++;
+//	}
+//
+//	if (i_word > 511) {
+//		display_image(data, 128, 128);
+//		i_word = 0;
+//		i_bit = 0;
+//		for (size_t i = 0; i < 512; i++) {
+//			data[i] = 0;
+//		}
+//	}
+
+	// Output
+	return OUTPUT_SCALE_FACTOR * 10.0 *temp1;
 }
 
 /*
